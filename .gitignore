@@ -13,6 +13,7 @@ TestComponent
 
 # Include Rollup config
 !rollup.config.js
+!vite.config.js
 
 # Misc
 .DS_Store
