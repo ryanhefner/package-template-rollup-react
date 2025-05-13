@@ -17,3 +17,6 @@ TestComponent
 
 # Misc
 .DS_Store
+
+# Dist
+dist/

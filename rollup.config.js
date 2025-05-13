@@ -3,39 +3,111 @@ import commonjs from '@rollup/plugin-commonjs'
 import json from '@rollup/plugin-json'
 import resolve from '@rollup/plugin-node-resolve'
 import { terser } from 'rollup-plugin-terser'
-import { createRequire } from 'module'
 
-const require = createRequire(import.meta.url)
-const pkg = require('./package.json')
+import pkg from './package.json'
 
-const config = {
-  input: 'src/index.js',
-  output: {
-    name: pkg.name,
-    file: './index.cjs',
-    format: 'umd',
-    globals: {
-      react: 'React',
-    },
-    banner: `/*! ${pkg.name} - ${pkg.version} !*/`,
-    footer: `/* Copyright ${(new Date()).getFullYear()} - ${pkg.author} */`,
+const input = 'src/index.js'
+
+const defaultOutputOptions = {
+  name: pkg.name,
+  format: 'umd',
+  globals: {
+    react: 'React',
+    'react-dom': 'ReactDOM',
   },
-  external: [
-    'react',
-  ],
-  plugins: [
-    resolve({ extensions: ['.js', '.jsx'] }),
-    babel({
-      exclude: 'node_modules/**',
-      babelHelpers: 'runtime',
-    }),
-    commonjs(),
-    json(),
-  ],
+  banner: `/*! [banner info] !*/`,
+  footer: '/* [footer info] */',
 }
 
-if (process.env.NODE_ENV === 'production') {
-  config.plugins.push(terser())
-}
+const defaultPlugins = [json(), resolve({ browser: true })]
 
-export default config
+const external = ['react', 'react-dom']
+
+export default [
+  // UMD - Minified
+  {
+    input,
+    output: {
+      ...defaultOutputOptions,
+      file: `dist/${pkg.name}.min.js`,
+      format: 'umd',
+    },
+    external,
+    plugins: [
+      ...defaultPlugins,
+      babel({
+        exclude: 'node_modules/**',
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        babelHelpers: 'runtime',
+        presets: ['@babel/preset-env', '@babel/preset-react'],
+      }),
+      terser(),
+    ],
+  },
+  // UMD
+  {
+    input,
+    output: {
+      ...defaultOutputOptions,
+      file: `dist/${pkg.name}.js`,
+      format: 'umd',
+    },
+    external,
+    plugins: [
+      ...defaultPlugins,
+      babel({
+        exclude: 'node_modules/**',
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        babelHelpers: 'runtime',
+        presets: ['@babel/preset-env', '@babel/preset-react'],
+      }),
+    ],
+  },
+  // ES
+  {
+    input,
+    output: [
+      {
+        ...defaultOutputOptions,
+        file: 'dist/esm/index.mjs',
+        format: 'esm',
+      },
+    ],
+    external,
+    plugins: [
+      ...defaultPlugins,
+      babel({
+        exclude: 'node_modules/**',
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        babelHelpers: 'runtime',
+        presets: ['@babel/preset-env', '@babel/preset-react'],
+      }),
+    ],
+  },
+  // CJS
+  {
+    input,
+    output: {
+      ...defaultOutputOptions,
+      file: 'dist/cjs/index.cjs',
+      format: 'cjs',
+      exports: 'auto',
+    },
+    external,
+    plugins: [
+      ...defaultPlugins,
+      babel({
+        exclude: 'node_modules/**',
+        extensions: ['.js', '.jsx', '.ts', '.tsx'],
+        babelHelpers: 'runtime',
+        presets: [
+          ['@babel/preset-env', { modules: false }],
+          '@babel/preset-react',
+        ],
+      }),
+      commonjs({
+        include: /node_modules/,
+      }),
+    ],
+  },
+]
